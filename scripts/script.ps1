@@ -19,22 +19,47 @@ param(
 $requiredPurviewVersion = "0.2.0"
 $requiredAccountsVersion = "4.0.1"
 
+# Remove any preloaded conflicting modules
+$loadedPurview = Get-Module -Name Az.Purview -ListAvailable
+$loadedAccounts = Get-Module -Name Az.Accounts -ListAvailable
+
+if ($loadedPurview) {
+    Write-Host "Removing preloaded Az.Purview module..."
+    Remove-Module -Name Az.Purview -Force -ErrorAction SilentlyContinue
+}
+
+if ($loadedAccounts) {
+    Write-Host "Removing preloaded Az.Accounts module..."
+    Remove-Module -Name Az.Accounts -Force -ErrorAction SilentlyContinue
+}
+
+# Pause to ensure modules are unloaded before installing
+Start-Sleep -Seconds 5
+
+# Uninstall existing conflicting versions
+Get-Module -ListAvailable -Name Az.Purview | Uninstall-Module -AllVersions -Force -ErrorAction SilentlyContinue
+Get-Module -ListAvailable -Name Az.Accounts | Uninstall-Module -AllVersions -Force -ErrorAction SilentlyContinue
+
 # Define a temporary module installation path
-$tempModulePath = "$HOME\AzModules"
+$modulePath = "$env:USERPROFILE\Documents\PowerShell\Modules"
 
-# Ensure the temp path exists
-New-Item -ItemType Directory -Path $tempModulePath -Force | Out-Null
+# Ensure module path exists
+New-Item -ItemType Directory -Path $modulePath -Force | Out-Null
 
-# Install the required module versions in the temporary path
-Install-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force -Scope CurrentUser -Repository PSGallery -AllowClobber -SkipPublisherCheck -DestinationPath $tempModulePath
-Install-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force -Scope CurrentUser -Repository PSGallery -AllowClobber -SkipPublisherCheck -DestinationPath $tempModulePath
+# Install the required versions in the standard module path
+Write-Host "Installing required module versions..."
+Install-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force -Scope CurrentUser -Repository PSGallery -AllowClobber
+Install-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force -Scope CurrentUser -Repository PSGallery -AllowClobber
 
-# Force PowerShell to use the correct module versions from the temporary path
-$env:PSModulePath = "$tempModulePath;$env:PSModulePath"
+# Update PowerShell Module Path
+$env:PSModulePath = "$modulePath;$env:PSModulePath"
 
-# Import the correct versions from the temporary location
+# Import the correct module versions
+Write-Host "Importing correct module versions..."
 Import-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force
 Import-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force
+
+Write-Host "Module setup complete."
 
 # Variables
 $pv_endpoint = "https://${accountName}.purview.azure.com"
