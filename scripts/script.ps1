@@ -15,30 +15,24 @@ param(
     [string]$vaultUri
 )
 
-# Remove any preloaded conflicting modules
-$loadedPurview = Get-Module -Name Az.Purview
-$loadedAccounts = Get-Module -Name Az.Accounts
-
-if ($loadedPurview) {
-    Remove-Module -Name Az.Purview -Force
-}
-
-if ($loadedAccounts) {
-    Remove-Module -Name Az.Accounts -Force
-}
-
-# Pause briefly to ensure modules are fully unloaded
-Start-Sleep -Seconds 5
-
 # Define required versions
 $requiredPurviewVersion = "0.2.0"
 $requiredAccountsVersion = "4.0.1"
 
-# Force install required versions of Az.Accounts and Az.Purview
-Install-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force -AllowClobber
-Install-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force -AllowClobber
+# Define a temporary module installation path
+$tempModulePath = "$HOME\AzModules"
 
-# Import the required module versions
+# Ensure the temp path exists
+New-Item -ItemType Directory -Path $tempModulePath -Force | Out-Null
+
+# Install the required module versions in the temporary path
+Install-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force -Scope CurrentUser -Repository PSGallery -AllowClobber -SkipPublisherCheck -DestinationPath $tempModulePath
+Install-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force -Scope CurrentUser -Repository PSGallery -AllowClobber -SkipPublisherCheck -DestinationPath $tempModulePath
+
+# Force PowerShell to use the correct module versions from the temporary path
+$env:PSModulePath = "$tempModulePath;$env:PSModulePath"
+
+# Import the correct versions from the temporary location
 Import-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force
 Import-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force
 
