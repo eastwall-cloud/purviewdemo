@@ -15,24 +15,32 @@ param(
     [string]$vaultUri
 )
 
+# Remove any preloaded conflicting modules
+$loadedPurview = Get-Module -Name Az.Purview
+$loadedAccounts = Get-Module -Name Az.Accounts
+
+if ($loadedPurview) {
+    Remove-Module -Name Az.Purview -Force
+}
+
+if ($loadedAccounts) {
+    Remove-Module -Name Az.Accounts -Force
+}
+
+# Pause briefly to ensure modules are fully unloaded
+Start-Sleep -Seconds 5
+
 # Define required versions
 $requiredPurviewVersion = "0.2.0"
 $requiredAccountsVersion = "4.0.1"
 
-# Install the required Az.Accounts version if not already installed
-if (-not (Get-Module -ListAvailable -Name Az.Accounts | Where-Object { $_.Version -eq $requiredAccountsVersion })) {
-    Install-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force
-}
-
-# Install the required Az.Purview version if not already installed
-if (-not (Get-Module -ListAvailable -Name Az.Purview | Where-Object { $_.Version -eq $requiredPurviewVersion })) {
-    Install-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force
-}
+# Force install required versions of Az.Accounts and Az.Purview
+Install-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force -AllowClobber
+Install-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force -AllowClobber
 
 # Import the required module versions
 Import-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force
 Import-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force
-
 
 # Variables
 $pv_endpoint = "https://${accountName}.purview.azure.com"
