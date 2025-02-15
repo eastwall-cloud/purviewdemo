@@ -15,8 +15,24 @@ param(
     [string]$vaultUri
 )
 
-Install-Module Az.Purview -Force
-Import-Module Az.Purview
+# Define required versions
+$requiredPurviewVersion = "0.2.0"
+$requiredAccountsVersion = "4.0.1"
+
+# Install the required Az.Accounts version if not already installed
+if (-not (Get-Module -ListAvailable -Name Az.Accounts | Where-Object { $_.Version -eq $requiredAccountsVersion })) {
+    Install-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force
+}
+
+# Install the required Az.Purview version if not already installed
+if (-not (Get-Module -ListAvailable -Name Az.Purview | Where-Object { $_.Version -eq $requiredPurviewVersion })) {
+    Install-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force
+}
+
+# Import the required module versions
+Import-Module -Name Az.Accounts -RequiredVersion $requiredAccountsVersion -Force
+Import-Module -Name Az.Purview -RequiredVersion $requiredPurviewVersion -Force
+
 
 # Variables
 $pv_endpoint = "https://${accountName}.purview.azure.com"
